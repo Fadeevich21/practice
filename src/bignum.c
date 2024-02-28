@@ -19,7 +19,8 @@ void bn_init(bignum_t *bignum) {
 
 void bn_assign(bignum_t *bignum_dst, size_t bignum_dst_offset, const bignum_t *bignum_src, size_t bignum_src_offset,
                size_t count) {
-    memcpy(bignum_dst->data + bignum_dst_offset, bignum_src->data + bignum_src_offset, count * BN_WORD_SIZE);
+    // memcpy(bignum_dst->data + bignum_dst_offset, bignum_src->data + bignum_src_offset, count * BN_WORD_SIZE);
+    memmove(bignum_dst->data + bignum_dst_offset, bignum_src->data + bignum_src_offset, count * BN_WORD_SIZE);
 }
 
 void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes) {
@@ -302,4 +303,18 @@ static void rshift_word(bignum_t *bignum, size_t nwords) {
 
     memmove(bignum->data, bignum->data + nwords, (BN_ARRAY_SIZE - nwords) * BN_WORD_SIZE);
     memset(bignum->data + (BN_ARRAY_SIZE - nwords), 0, nwords * BN_WORD_SIZE);
+}
+
+size_t bn_bitcount(bignum_t *bignum) {
+    size_t bits = (BN_BYTE_SIZE << 3) - (BN_WORD_SIZE << 3);
+    int i;
+    for (i = BN_ARRAY_SIZE - 1; i >= 0 && bignum->data[i] == 0; --i) {
+        bits -= BN_WORD_SIZE << 3;
+    }
+
+    for (BN_DTYPE value = bignum->data[i]; value != 0; value >>= 1) {
+        bits++;
+    }
+
+    return bits;
 }

@@ -55,5 +55,7 @@ uint8_t bn_is_zero(const bignum_t *bignum);
 void bn_inc(bignum_t *bignum);
 void bn_dec(bignum_t *bignum);
 void bn_fill(bignum_t *bignum, size_t offset, BN_DTYPE value, size_t count);
+size_t bn_bitcount(bignum_t *bignum);
+
 
 #endif // BIGNUM_H
