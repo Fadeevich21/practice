@@ -2,6 +2,7 @@
 #define RSA_H
 
 #include "bignum.h"
+#include "montgomery.h"
 #include <stddef.h>
 
 typedef struct {
@@ -23,9 +24,9 @@ typedef struct {
 void import_pub_key(rsa_pub_key_t *key, const char *data);
 void import_pvt_key(rsa_pvt_key_t *key, const char *data);
 
-void encrypt(const rsa_pub_key_t *key, const bignum_t *bignum_in, bignum_t *bignum_out);
-void encrypt_buf(const rsa_pub_key_t *key, const char *buffer_in, size_t buffer_in_len, char *buffer_out, size_t buffer_out_len);
-void decrypt(const rsa_pvt_key_t *key, const bignum_t *bignum_in, bignum_t *bignum_out);
-void decrypt_buf(const rsa_pvt_key_t *key, const char *buffer_in, size_t buffer_in_len, char *out, size_t buffer_out_len);
+void encrypt(const rsa_pub_key_t *key, const montg_t *montg_domain, const bignum_t *bignum_in, bignum_t *bignum_out);
+void encrypt_buf(const rsa_pub_key_t *key, const montg_t *montg_domain, const char *buffer_in, size_t buffer_in_len, char *buffer_out, size_t buffer_out_len);
+void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain, const bignum_t *bignum_in, bignum_t *bignum_out);
+void decrypt_buf(const rsa_pvt_key_t *key, const montg_t *montg_domain, const char *buffer_in, size_t buffer_in_len, char *out, size_t buffer_out_len);
 
 #endif // RSA_H

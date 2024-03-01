@@ -1,5 +1,4 @@
 #include "asn1.h"
-#include <stdio.h>
 #include <stdint.h>
 
 // TODO: возможно, ошибка здесь

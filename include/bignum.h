@@ -18,9 +18,10 @@
 
 #define BN_ARRAY_SIZE (BN_BYTE_SIZE / BN_WORD_SIZE)
 
-typedef struct {
-    BN_DTYPE data[BN_ARRAY_SIZE];
-} bignum_t;
+typedef BN_DTYPE bignum_t[BN_ARRAY_SIZE];
+// typedef struct {
+//     BN_DTYPE data[BN_ARRAY_SIZE];
+// } bignum_t;
 
 typedef enum {
     BN_CMP_SMALLER = -1,
@@ -40,6 +41,7 @@ void bn_to_string(const bignum_t *bignum, char *str, const size_t nbytes);
 void bn_add(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_sub(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_mul(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
+void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_div(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_mod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_div, bignum_t *bignum_mod);
@@ -49,13 +51,13 @@ void bn_or(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_re
 void bn_xor(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_lshift(const bignum_t *bignum, bignum_t *bignum_res, size_t nbits);
 void bn_rshift(const bignum_t *bignum, bignum_t *bignum_res, size_t nbits);
+size_t bn_bitcount(const bignum_t *bignum);
 
 bignum_compare_state bn_cmp(const bignum_t *bignum1, const bignum_t *bignum2);
 uint8_t bn_is_zero(const bignum_t *bignum);
 void bn_inc(bignum_t *bignum);
 void bn_dec(bignum_t *bignum);
 void bn_fill(bignum_t *bignum, size_t offset, BN_DTYPE value, size_t count);
-size_t bn_bitcount(bignum_t *bignum);
 
 
 #endif // BIGNUM_H
