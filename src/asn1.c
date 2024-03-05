@@ -1,5 +1,6 @@
 #include "asn1.h"
 #include <stdint.h>
+#include <stdio.h>
 
 // TODO: возможно, ошибка здесь
 int asn1_get_int(const uint8_t *buffer, const uint8_t **int_ptr, size_t *nbytes) {
@@ -117,8 +118,8 @@ size_t asn1_get_len(const uint8_t *buffer) {
     size_t len = buffer[0];
     if (buffer[0] & ~0x7F) {
         len = 0;
-        for (size_t i = buffer[0] & 0x7F; i > 0; --i) {
-            len = len << sizeof(uint8_t) | buffer[i];
+        for (size_t i = 1; i <= (buffer[0] & 0x7F); ++i) {
+            len = len << 8 | buffer[i];
         }
     }
 

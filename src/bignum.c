@@ -1,5 +1,6 @@
 #include "bignum.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
@@ -8,6 +9,13 @@ static void lshift_one_bit(bignum_t *bignum);
 static void rshift_one_bit(bignum_t *bignum);
 static void lshift_word(bignum_t *bignum, size_t nwords);
 static void rshift_word(bignum_t *bignum, size_t nwords);
+
+static uint8_t bn_is_zero_size(const bignum_t *bignum, size_t size);
+static bignum_compare_state bn_cmp_size(const bignum_t *bignum1, const bignum_t *bignum2, size_t size);
+static void bn_sub_size(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+static void bn_add_size(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size_t in_bn_size);
+static void bn_inner_square(bignum_t *bignum, size_t in_bn_size);
 
 void bn_fill(bignum_t *bignum, size_t offset, BN_DTYPE value, size_t count) {
     memset((*bignum) + offset, value, count * BN_WORD_SIZE);
@@ -108,67 +116,60 @@ void bn_mul(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_r
     }
 }
 
-// TODO: переписать, медленно работает
+void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res) {
+    bn_assign(bignum_res, 0, bignum1, 0, BN_ARRAY_SIZE);
+    bn_inner_karatsuba(bignum_res, bignum2, BN_ARRAY_SIZE / 2);
+}
+
 static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size_t in_bn_size) {
-    // Выход из рекурсии, когда можно просто умножить левый операнд на правый
     if (in_bn_size == 1) {
         bn_from_int(left, (BN_DTYPE_TMP)(*left)[0] * (BN_DTYPE_TMP)(*right)[0]);
         return;
     }
     
-    if (bn_is_zero(left) || bn_is_zero(right)) {
+    if (bn_is_zero_size(left, in_bn_size) || bn_is_zero_size(right, in_bn_size)) {
         bn_fill(left, 0, 0, in_bn_size << 1);
         return;
     }
 
-    bignum_t z0, z1, z2, l1, l2, r1, r2;
-    bn_init(&z0);
-    bn_init(&z1);
-    bn_init(&z2);
-    bn_init(&l1);
-    bn_init(&l2);
-    bn_init(&r1);
-    bn_init(&r2);
+    const size_t z_size = 3;
+    bignum_t z[z_size];
+    bignum_t* z0_ptr = z + 0;
+    bignum_t* z1_ptr = z + 1;
+    bignum_t* z2_ptr = z + 2;
+    memset(z, 0, z_size * BN_BYTE_SIZE);
 
-    size_t bn_size_shift = in_bn_size >> 1;
-    bn_assign(&l1, 0, left, 0, bn_size_shift);
-    bn_assign(&l2, 0, left, bn_size_shift, bn_size_shift);
-    bn_assign(&r1, 0, right, 0, bn_size_shift);
-    bn_assign(&r2, 0, right, bn_size_shift, bn_size_shift);
+    const size_t bn_size_shift = in_bn_size >> 1;
 
     // (L1 + L2)
-    bn_add(&l1, &l2, &z0);
+    bn_add_size((bignum_t*)*left, (bignum_t*)(*left + bn_size_shift), z0_ptr, bn_size_shift);
 
     // (R1 + R2)
-    bn_add(&r1, &r2, &z1);
+    bn_add_size((bignum_t*)*right, (bignum_t*)(*right + bn_size_shift), z1_ptr, bn_size_shift);
 
     // (L1 + L2) * (R1 + R2)
-    size_t size = (z0[bn_size_shift] | z1[bn_size_shift]) ? in_bn_size : bn_size_shift;
-    bn_inner_karatsuba(&z0, &z1, size);
+    const size_t size = ((*z0_ptr)[bn_size_shift] | (*z1_ptr)[bn_size_shift]) ? in_bn_size : bn_size_shift;
+    bn_inner_karatsuba(z0_ptr, z1_ptr, size);
 
     // Z1 = L1 * R1
-    bn_assign(&z1, 0, &l1, 0, BN_ARRAY_SIZE);
-    bn_inner_karatsuba(&z1, &r1, bn_size_shift);
-    bn_sub(&z0, &z1, &z0);
+    bn_assign(z1_ptr, 0, left, 0, bn_size_shift);
+    bn_inner_karatsuba(z1_ptr, right, bn_size_shift);
+    bn_sub_size(z0_ptr, z1_ptr, z0_ptr, in_bn_size << 1);
 
     // Z2 = L2 * R2
-    bn_assign(&z2, 0, &l2, 0, BN_ARRAY_SIZE);
-    bn_inner_karatsuba(&z2, &r2, bn_size_shift);
-    bn_sub(&z0, &z2, &z0);
+    bn_assign(z2_ptr, 0, left, bn_size_shift, bn_size_shift);
+    bn_inner_karatsuba(z2_ptr, (bignum_t*)(*(bignum_t *)right + bn_size_shift), bn_size_shift);
+    bn_sub_size(z0_ptr, z2_ptr, z0_ptr, in_bn_size << 1);
 
     // Result Z2 + Z1 + Z0 (shift adjusted)
-    bn_assign(&z1, in_bn_size, &z2, 0, in_bn_size);
-    bn_fill(&z2, 0, 0, bn_size_shift);
-    bn_assign(&z2, bn_size_shift, &z0, 0, in_bn_size + 1);
-    bn_add(&z1, &z2, &z1);
+    bn_assign(z1_ptr, in_bn_size, z2_ptr, 0, in_bn_size);
+    bn_fill(z2_ptr, 0, 0, bn_size_shift);
+    bn_assign(z2_ptr, bn_size_shift, z0_ptr, 0, in_bn_size + 1);
+    bn_add_size(z1_ptr, z2_ptr, z1_ptr, in_bn_size << 1);
 
-    bn_assign(left, 0, &z1, 0, in_bn_size << 1);
+    bn_assign(left, 0, z1_ptr, 0, in_bn_size << 1);
 }
 
-void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res) {
-    bn_assign(bignum_res, 0, bignum1, 0, BN_ARRAY_SIZE);
-    bn_inner_karatsuba(bignum_res, bignum2, BN_ARRAY_SIZE / 2);
-}
 
 void bn_div(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res) {
     if (bn_is_zero(bignum2)) {
@@ -225,8 +226,7 @@ void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignu
 
     bignum_t tmp;
     bn_div(bignum1, bignum2, bignum_div);
-    // bn_karatsuba(bignum_div, bignum2, &tmp);
-    bn_mul(bignum_div, bignum2, &tmp);
+    bn_karatsuba(bignum_div, bignum2, &tmp);
     bn_sub(bignum1, &tmp, bignum_mod);
 }
 
@@ -380,4 +380,95 @@ size_t bn_bitcount(const bignum_t *bignum) {
     }
 
     return bits;
+}
+
+static void bn_add_size(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
+    uint8_t carry = 0;
+    for (size_t i = 0; i < size; ++i) {
+        BN_DTYPE_TMP tmp = (BN_DTYPE_TMP)(*bignum1)[i] + (*bignum2)[i] + carry;
+        carry = tmp > BN_MAX_VAL;
+        (*bignum_res)[i] = tmp & BN_MAX_VAL;
+    }
+    (*bignum_res)[size] = carry;
+}
+
+void bn_square(const bignum_t *bignum, bignum_t *bignum_res) {
+    bn_assign(bignum_res, 0, bignum, 0, BN_ARRAY_SIZE);
+    bn_inner_square(bignum_res, BN_ARRAY_SIZE / 2); // TODO: мб размер без '/ 2'
+}
+
+
+// FIXME: не работает
+static void bn_inner_square(bignum_t *bignum, size_t in_bn_size) {
+    if (in_bn_size == 1) {
+        bn_from_int(bignum, (BN_DTYPE_TMP)(*bignum)[0] * (BN_DTYPE_TMP)(*bignum)[0]);
+        return;
+    }
+
+    bignum_t bignum_ab;
+    bn_init(&bignum_ab);
+
+    const size_t bn_size_shift = in_bn_size >> 1;
+    bn_assign(bignum, in_bn_size, bignum, bn_size_shift, bn_size_shift);
+    bn_fill(bignum, bn_size_shift, 0, bn_size_shift);
+    bn_assign(&bignum_ab, 0, bignum, 0, in_bn_size << 1);
+
+
+    bignum_t bignum_tmp1, bignum_tmp2;
+    bn_fill(&bignum_tmp1, 0, 0, BN_ARRAY_SIZE);
+    bn_assign(&bignum_tmp1, 0, bignum, 0, bn_size_shift);
+
+    bn_fill(&bignum_tmp2, 0, 0, BN_ARRAY_SIZE);
+    bn_assign(&bignum_tmp2, 0, bignum, in_bn_size, bn_size_shift);
+
+
+    bn_inner_square(&bignum_tmp1, bn_size_shift);
+    bn_inner_square(&bignum_tmp2, bn_size_shift);
+    bn_inner_karatsuba(&bignum_ab, (bignum_t*)(bignum_ab + in_bn_size), bn_size_shift);
+
+    bn_assign(bignum, 0, &bignum_tmp1, 0, bn_size_shift);
+    bn_assign(bignum, in_bn_size, &bignum_tmp2, 0, bn_size_shift);
+
+    bn_fill(&bignum_ab, in_bn_size, 0, bn_size_shift);
+    bn_lshift(&bignum_ab, &bignum_ab, (in_bn_size << 2) + 1);
+    bn_add(bignum, &bignum_ab, bignum);
+}
+
+static void bn_sub_size(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
+    if (bn_cmp_size(bignum1, bignum2, size) == BN_CMP_SMALLER) {
+        return;
+    }
+
+    uint8_t borrow = 0;
+    for (size_t i = 0; i < size; ++i) {
+        BN_DTYPE_TMP tmp1 = (BN_DTYPE_TMP)(*bignum1)[i] + BN_MAX_VAL + 1;
+        BN_DTYPE_TMP tmp2 = (BN_DTYPE_TMP)(*bignum2)[i] + borrow;
+        BN_DTYPE_TMP res = tmp1 - tmp2;
+        (*bignum_res)[i] = (BN_DTYPE)(res & BN_MAX_VAL);
+        borrow = res <= BN_MAX_VAL;
+    }
+}
+
+static bignum_compare_state bn_cmp_size(const bignum_t *bignum1, const bignum_t *bignum2, size_t size) {
+    size_t i = size;
+    do {
+        --i;
+        if ((*bignum1)[i] > (*bignum2)[i]) {
+            return BN_CMP_LARGER;
+        } else if ((*bignum1)[i] < (*bignum2)[i]) {
+            return BN_CMP_SMALLER;
+        }
+    } while (i != 0);
+
+    return BN_CMP_EQUAL;
+}
+
+static uint8_t bn_is_zero_size(const bignum_t *bignum, size_t size) {
+    for (size_t i = 0; i < size; ++i) {
+        if ((*bignum)[i]) {
+            return 0;
+        }
+    }
+
+    return 1;
 }

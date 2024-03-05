@@ -1,6 +1,8 @@
 #include "montgomery.h"
 #include "bignum.h"
+#include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 // Extended Euclidian algorithm
 static void montg_inverse(const bignum_t *val, const bignum_t *mod, bignum_t *res) {
@@ -19,8 +21,7 @@ static void montg_inverse(const bignum_t *val, const bignum_t *mod, bignum_t *re
     bn_init(&t3);
 
     bn_divmod(&n, &b, &q, &r);
-    // bn_karatsuba(res, &q, &t3);
-    bn_mul(res, &q, &t3);
+    bn_karatsuba(res, &q, &t3);
 
     uint8_t sign = 1;
     while (!bn_is_zero(&r)) {
@@ -30,8 +31,7 @@ static void montg_inverse(const bignum_t *val, const bignum_t *mod, bignum_t *re
         bn_assign(res, 0, &t3, 0, BN_ARRAY_SIZE);
 
         bn_divmod(n_ptr, b_ptr, &q, &r);
-        // bn_karatsuba(res, &q, &t3);
-        bn_mul(res, &q, &t3);
+        bn_karatsuba(res, &q, &t3);
         bn_add(&t3, &t1, &t3);
         sign = !sign;
     }
@@ -63,7 +63,7 @@ void montg_init(montg_t *md, const bignum_t *mod) {
 
 void montg_transform(const montg_t *md, const bignum_t *val, bignum_t *res) {
     bignum_t temp;
-    memmove(temp + md->shift, (*val), md->shift_byte_size);
+    memmove(temp + md->shift, *val, md->shift_byte_size);
     memset(temp, 0, md->shift_byte_size);
     bn_mod(&temp, &md->mod, res);
 }
@@ -77,26 +77,23 @@ void montg_revert(const montg_t *md, const bignum_t *val, bignum_t *res) {
 void montg_mul(const montg_t *md, const bignum_t *lhs, const bignum_t *rhs, bignum_t *res) {
     bignum_t m, m_r_inv, t;
     uint8_t overflow = 0;
-    // bn_karatsuba(lhs, rhs, &t);
-    bn_mul(lhs, rhs, &t);
+    bn_karatsuba(lhs, rhs, &t);
     bn_assign(res, 0, &t, 0, BN_ARRAY_SIZE);
     bn_assign(&m, 0, res, 0, BN_ARRAY_SIZE);
 
     memset(m + md->shift, 0, md->shift_byte_size);
-    // bn_karatsuba(&m, &md->r_inv, &m_r_inv);
-    bn_mul(&m, &md->r_inv, &m_r_inv);
+    bn_karatsuba(&m, &md->r_inv, &m_r_inv);
     memset(m_r_inv + md->shift, 0, md->shift_byte_size);
 
-    // bn_karatsuba(&m_r_inv, &md->mod, &m);
-    bn_mul(&m_r_inv, &md->mod, &m);
+    bn_karatsuba(&m_r_inv, &md->mod, &m);
     bn_add(res, &m, res);
 
     if (bn_cmp(res, &t) == BN_CMP_SMALLER && bn_cmp(res, &m) == BN_CMP_SMALLER) {
         overflow = 1;
     }
 
-    memmove((*res), (*res) + md->shift, md->shift_byte_size);
-    memset((*res) + md->shift, 0, md->shift_byte_size);
+    memmove(*res, *res + md->shift, md->shift_byte_size);
+    memset(*res + md->shift, 0, md->shift_byte_size);
 
     if (overflow) {
         (*res)[BN_ARRAY_SIZE / 2] = 1;
@@ -108,8 +105,7 @@ void montg_mul(const montg_t *md, const bignum_t *lhs, const bignum_t *rhs, bign
 }
 
 void montg_pow(const montg_t *md, const bignum_t *b, const bignum_t *exp, bignum_t *res) {
-    bignum_t b_copy;
-    bn_assign(&b_copy, 0, b, 0, BN_ARRAY_SIZE);
+    bn_assign(res, 0, b, 0, BN_ARRAY_SIZE);
     
     size_t len = bn_bitcount(exp) - 1;
     uint8_t *end = (uint8_t *)(*exp) + len / 8;
@@ -121,13 +117,11 @@ void montg_pow(const montg_t *md, const bignum_t *b, const bignum_t *exp, bignum
     }
 
     while (end >= beg) {
-        montg_mul(md, &b_copy, &b_copy, res);
-        bn_assign(&b_copy, 0, res, 0, BN_ARRAY_SIZE);
-
+        montg_mul(md, res, res, res);
         if (*end & mask) {
-            montg_mul(md, &b_copy, b, res);
-            bn_assign(&b_copy, 0, res, 0, BN_ARRAY_SIZE);
+            montg_mul(md, res, b, res);
         }
+
         mask >>= 1;
         if (!mask) {
             mask = 128;

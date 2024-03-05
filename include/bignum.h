@@ -19,9 +19,6 @@
 #define BN_ARRAY_SIZE (BN_BYTE_SIZE / BN_WORD_SIZE)
 
 typedef BN_DTYPE bignum_t[BN_ARRAY_SIZE];
-// typedef struct {
-//     BN_DTYPE data[BN_ARRAY_SIZE];
-// } bignum_t;
 
 typedef enum {
     BN_CMP_SMALLER = -1,
@@ -45,6 +42,7 @@ void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bi
 void bn_div(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_mod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_div, bignum_t *bignum_mod);
+void bn_square(const bignum_t *bignum, bignum_t *bignum_res);
 
 void bn_and(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
 void bn_or(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);

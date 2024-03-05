@@ -2,8 +2,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <stdio.h>
 
 #include "asn1.h"
 #include "base64.h"
@@ -22,8 +23,8 @@ static void pow_mod_faster(const bignum_t *bignum_base, const bignum_t *bignum_e
 
     while (1) {
         if (y[0] & 1) {
-            // bn_karatsuba(bignum_res, &x, &tmp);
-            bn_mul(bignum_res, &x, &tmp);
+            bn_karatsuba(bignum_res, &x, &tmp);
+            // bn_mul(bignum_res, &x, &tmp);
             bn_mod(&tmp, bignum_mod, bignum_res);
         }
         bn_rshift(&y, &tmp, 1);
@@ -33,8 +34,8 @@ static void pow_mod_faster(const bignum_t *bignum_base, const bignum_t *bignum_e
             break;
         }
 
-        // bn_karatsuba(&x, &x, &tmp);
-        bn_mul(&x, &x, &tmp);
+        bn_karatsuba(&x, &x, &tmp);
+        // bn_mul(&x, &x, &tmp);
         bn_mod(&tmp, bignum_mod, &x);
     }
 }
@@ -64,6 +65,7 @@ void import_pub_key(rsa_pub_key_t *key, const char *data) {
 
         base64_read((uint8_t *)data + beg_size, pem_size - beg_size - end_size, buffer, in_size);
 
+        // const size_t key_padding = 2;
         const size_t key_padding = asn1_get_padding_pub_key(buffer, in_size);
         read_ptr = buffer + key_padding;
 
@@ -111,6 +113,7 @@ void import_pvt_key(rsa_pvt_key_t *key, const char *data) {
 
     base64_read((uint8_t *)data + beg_size, pem_size - beg_size - end_size, buffer, in_size);
 
+    // const size_t key_padding = 3;
     const size_t key_padding = asn1_get_padding_pvt_key(buffer, in_size);
     read_ptr = buffer + key_padding;
     read_size = asn1_get_int(read_ptr, &int_ptr, &int_size);
@@ -149,7 +152,6 @@ void encrypt(const rsa_pub_key_t *key, const montg_t *montg_domain, const bignum
 void encrypt_buf(const rsa_pub_key_t *key, const montg_t *montg_domain, const char *bignum_in, size_t bignum_in_len, char *bignum_out, size_t bignum_out_len) {
     bignum_t in_bn, out_bn;
     bn_init(&in_bn);
-    // out[0] = '\0';
 
     memmove(in_bn, bignum_in, bignum_in_len * sizeof(uint8_t));
     encrypt(key, montg_domain, &in_bn, &out_bn);
@@ -161,7 +163,6 @@ void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain, const bignum
 
     montg_transform(montg_domain, bignum_in, &bignum_montg_in);
     bn_init(&bignum_montg_out);
-
     montg_pow(montg_domain, &bignum_montg_in, &key->pvt_exp, &bignum_montg_out);
     montg_revert(montg_domain, &bignum_montg_out, bignum_out);
 }
@@ -169,7 +170,6 @@ void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain, const bignum
 void decrypt_buf(const rsa_pvt_key_t *k, const montg_t *montg_domain, const char *bignum_in, size_t bignum_in_len, char *bignum_out, size_t bignum_out_len) {
     bignum_t in_bn, out_bn;
     bn_init(&in_bn);
-    // out[0] = '\0';
 
     bn_from_string(&in_bn, bignum_in, bignum_in_len - 1);
     decrypt(k, montg_domain, &in_bn, &out_bn);
