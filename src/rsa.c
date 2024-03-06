@@ -3,42 +3,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
-#include <stdio.h>
 
 #include "asn1.h"
 #include "base64.h"
 #include "bignum.h"
 #include "montgomery.h"
-
-static void pow_mod_faster(const bignum_t *bignum_base, const bignum_t *bignum_exp, const bignum_t *bignum_mod, bignum_t *bignum_res) {
-    bn_from_int(bignum_res, 1);
-
-    bignum_t x;
-    bignum_t y;
-    bignum_t tmp;
-
-    bn_assign(&x, 0, bignum_base, 0, BN_ARRAY_SIZE);
-    bn_assign(&y, 0, bignum_exp, 0, BN_ARRAY_SIZE);
-
-    while (1) {
-        if (y[0] & 1) {
-            bn_karatsuba(bignum_res, &x, &tmp);
-            // bn_mul(bignum_res, &x, &tmp);
-            bn_mod(&tmp, bignum_mod, bignum_res);
-        }
-        bn_rshift(&y, &tmp, 1);
-        bn_assign(&y, 0, &tmp, 0, BN_ARRAY_SIZE);
-
-        if (bn_is_zero(&y)) {
-            break;
-        }
-
-        bn_karatsuba(&x, &x, &tmp);
-        // bn_mul(&x, &x, &tmp);
-        bn_mod(&tmp, bignum_mod, &x);
-    }
-}
 
 void import_pub_key(rsa_pub_key_t *key, const char *data) {
     const char begin[] = "-----BEGIN PUBLIC KEY-----\r\n";
@@ -123,7 +92,7 @@ void import_pvt_key(rsa_pvt_key_t *key, const char *data) {
 
     bignum_t version;
     bn_from_bytes(&version, int_ptr, int_size);
-    if (!bn_is_zero(&version)) {
+    if (!bn_is_zero(&version, BN_ARRAY_SIZE)) {
         return;
     }
     read_ptr += read_size;
@@ -143,7 +112,7 @@ void encrypt(const rsa_pub_key_t *key, const montg_t *montg_domain, const bignum
     bignum_t bignum_montg_in, bignum_montg_out;
 
     montg_transform(montg_domain, bignum_in, &bignum_montg_in);
-    bn_init(&bignum_montg_out);
+    bn_init(&bignum_montg_out, BN_ARRAY_SIZE);
 
     montg_pow(montg_domain, &bignum_montg_in, &key->pub_exp, &bignum_montg_out);
     montg_revert(montg_domain, &bignum_montg_out, bignum_out);
@@ -151,7 +120,7 @@ void encrypt(const rsa_pub_key_t *key, const montg_t *montg_domain, const bignum
 
 void encrypt_buf(const rsa_pub_key_t *key, const montg_t *montg_domain, const char *bignum_in, size_t bignum_in_len, char *bignum_out, size_t bignum_out_len) {
     bignum_t in_bn, out_bn;
-    bn_init(&in_bn);
+    bn_init(&in_bn, BN_ARRAY_SIZE);
 
     memmove(in_bn, bignum_in, bignum_in_len * sizeof(uint8_t));
     encrypt(key, montg_domain, &in_bn, &out_bn);
@@ -162,14 +131,14 @@ void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain, const bignum
     bignum_t bignum_montg_in, bignum_montg_out;
 
     montg_transform(montg_domain, bignum_in, &bignum_montg_in);
-    bn_init(&bignum_montg_out);
+    bn_init(&bignum_montg_out, BN_ARRAY_SIZE);
     montg_pow(montg_domain, &bignum_montg_in, &key->pvt_exp, &bignum_montg_out);
     montg_revert(montg_domain, &bignum_montg_out, bignum_out);
 }
 
 void decrypt_buf(const rsa_pvt_key_t *k, const montg_t *montg_domain, const char *bignum_in, size_t bignum_in_len, char *bignum_out, size_t bignum_out_len) {
     bignum_t in_bn, out_bn;
-    bn_init(&in_bn);
+    bn_init(&in_bn, BN_ARRAY_SIZE);
 
     bn_from_string(&in_bn, bignum_in, bignum_in_len - 1);
     decrypt(k, montg_domain, &in_bn, &out_bn);

@@ -19,6 +19,7 @@ target_sources(rsa_test PRIVATE
     src/asn1.c
     src/base64.c
     src/montgomery.c
+    src/utils.c
 )
 
 target_include_directories(rsa_test PRIVATE include)

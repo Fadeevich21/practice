@@ -22,9 +22,6 @@ typedef struct {
 int main() {
     rsa_pub_key_t pub_key;
     char *pub_data =
-        // "-----BEGIN PUBLIC KEY-----\r\n"
-        // "MCgCIQCr6GsE2KNw6ayxu05r3LFqM1rxrj38Xmrk7hSb/quEqQIDAQAB"
-        // "-----END PUBLIC KEY-----\r\n";
         "-----BEGIN PUBLIC KEY-----\r\n"
         "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAOIkleXcUNZTiBRuAxYU6dCEKJLW6ZET"
         "FE81NUIVffzm+E75/mKGSkpgmb5KamsNo7SEgEAdKro0RkZZ0ia4Rc8CAwEAAQ=="
@@ -33,12 +30,6 @@ int main() {
 
     rsa_pvt_key_t pvt_key;
     char *pvt_data =
-        // "-----BEGIN PRIVATE KEY-----\r\n"
-        // "MIGqAgEAAiEAq+hrBNijcOmssbtOa9yxajNa8a49/F5q5O4Um/6rhKkCAwEAAQIg"
-        // "H3i3TvXSRjOheBBQdRK8DrKKNASfjqTYY1BCkhUm52ECEgC2/zsTwKxMCy+CtLQ9"
-        // "qYXI9QIQAPB8sxKJWvoBCsd2BcDMZQIRMN1ejRu55mRmP2S5bG3EB7ECDxVaTSAZ"
-        // "OA24p/db4FjlDQIRTc7Fe6C/REXR7L09Ymv8bpc="
-        // "-----END PRIVATE KEY-----\r\n";
         "-----BEGIN PRIVATE KEY-----\r\n"
         "MIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEA4iSV5dxQ1lOIFG4D"
         "FhTp0IQoktbpkRMUTzU1QhV9/Ob4Tvn+YoZKSmCZvkpqaw2jtISAQB0qujRGRlnS"

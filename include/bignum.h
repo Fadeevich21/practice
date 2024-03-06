@@ -26,33 +26,34 @@ typedef enum {
     BN_CMP_LARGER = 1
 } bignum_compare_state;
 
-void bn_init(bignum_t *n);
+void bn_init(bignum_t *n, size_t size);
 void bn_assign(bignum_t *bignum_dst, size_t bignum_dst_offset, const bignum_t *bignum_src, size_t bignum_src_offset,
                size_t count);
 void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes);
 void bn_from_string(bignum_t *bignum, const char *str, const size_t nbytes);
-void bn_from_int(bignum_t *bignum, const BN_DTYPE_TMP value);
+void bn_from_int(bignum_t *bignum, const BN_DTYPE_TMP value, size_t size);
 
 void bn_to_string(const bignum_t *bignum, char *str, const size_t nbytes);
 
-void bn_add(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_sub(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_mul(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_div(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_mod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_div, bignum_t *bignum_mod);
-void bn_square(const bignum_t *bignum, bignum_t *bignum_res);
+void bn_add(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_add_carry(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_sub(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_mul(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_div(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_mod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_div, bignum_t *bignum_mod, size_t size);
+void bn_square(const bignum_t *bignum, bignum_t *bignum_res, size_t size);
 
-void bn_and(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_or(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
-void bn_xor(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res);
+void bn_and(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_or(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
+void bn_xor(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size);
 void bn_lshift(const bignum_t *bignum, bignum_t *bignum_res, size_t nbits);
 void bn_rshift(const bignum_t *bignum, bignum_t *bignum_res, size_t nbits);
 size_t bn_bitcount(const bignum_t *bignum);
 
-bignum_compare_state bn_cmp(const bignum_t *bignum1, const bignum_t *bignum2);
-uint8_t bn_is_zero(const bignum_t *bignum);
+bignum_compare_state bn_cmp(const bignum_t *bignum1, const bignum_t *bignum2, size_t size);
+uint8_t bn_is_zero(const bignum_t *bignum, size_t size);
 void bn_inc(bignum_t *bignum);
 void bn_dec(bignum_t *bignum);
 void bn_fill(bignum_t *bignum, size_t offset, BN_DTYPE value, size_t count);
