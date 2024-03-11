@@ -1,6 +1,5 @@
 #include "asn1.h"
 #include <stdint.h>
-#include <stdio.h>
 
 // TODO: возможно, ошибка здесь
 int asn1_get_int(const uint8_t *buffer, const uint8_t **int_ptr, size_t *nbytes) {

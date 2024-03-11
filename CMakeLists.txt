@@ -6,8 +6,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 set(CMAKE_BUILD_TYPE Debug)
 
 add_compile_options(-O3)
-add_compile_options(-ffast-math)
-add_compile_options(-flto)
 add_compile_options(-march=native)
 
 add_executable(rsa_test)

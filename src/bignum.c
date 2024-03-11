@@ -27,14 +27,29 @@ void bn_assign(bignum_t *bignum_dst, size_t bignum_dst_offset, const bignum_t *b
     memcpy((*bignum_dst) + bignum_dst_offset, (*bignum_src) + bignum_src_offset, count * BN_WORD_SIZE);
 }
 
-// TODO: переписать
+// TODO: проверить
 void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes) {
-    char hex_str[nbytes * 2];
+    bn_init(bignum, BN_ARRAY_SIZE);
+
+    uint8_t padding = ((nbytes - 1) / BN_WORD_SIZE + 1) * BN_WORD_SIZE - nbytes;
+
     for (size_t i = 0; i < nbytes; ++i) {
-        sprintf(hex_str + i * 2, "%02x", bytes[i]);
+        (*bignum)[(nbytes - 1 - i) / BN_WORD_SIZE] |= (BN_DTYPE)bytes[i] << ((BN_WORD_SIZE - 1 - i - padding) % BN_WORD_SIZE) * 8;
     }
 
-    bn_from_string(bignum, hex_str, nbytes * 2);
+    // int bn_pos = nbytes / BN_WORD_SIZE + (nbytes % 4 != 0);
+
+    // for (size_t i = 0; i < nbytes; ++i) {
+    //     size_t shift = BN_WORD_SIZE - 1 - (i % BN_WORD_SIZE);
+    //     (*bignum)[bn_pos - 1 - i / BN_WORD_SIZE] |= (BN_DTYPE)bytes[i] << shift * 8;
+    // }
+
+    // char hex_str[nbytes * 2];
+    // for (size_t i = 0; i < nbytes; ++i) {
+    //     sprintf(hex_str + i * 2, "%02x", bytes[i]);
+    // }
+
+    // bn_from_string(bignum, hex_str, nbytes * 2);
 }
 
 void bn_from_string(bignum_t *bignum, const char *str, const size_t nbytes) {

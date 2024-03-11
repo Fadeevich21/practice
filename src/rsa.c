@@ -98,7 +98,8 @@ void import_pvt_key(rsa_pvt_key_t *key, const char *data) {
     read_ptr += read_size;
 
     bignum_t *targets[] = {&key->mod, &key->pub_exp, &key->pvt_exp, &key->p, &key->q, &key->exp1, &key->exp2, &key->coeff};
-    for (size_t i = 0; i < sizeof(*targets); i++) {
+    size_t targets_size = sizeof(targets) / sizeof(bignum_t *);
+    for (size_t i = 0; i < targets_size; i++) {
         read_size = asn1_get_int(read_ptr, &int_ptr, &int_size);
         if (read_size == -1) {
             return;
