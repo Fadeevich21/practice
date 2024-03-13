@@ -1,6 +1,8 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.14)
 
-project(RSA VERSION 1.0 LANGUAGES C)
+project(RSA VERSION 1.0)
+
+add_subdirectory(test)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 set(CMAKE_BUILD_TYPE Debug)
