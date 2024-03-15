@@ -42,19 +42,21 @@ int main() {
         "-----END PRIVATE KEY-----\r\n";
     import_pvt_key(&pvt_key, pvt_data);
 
-    montg_t montg_domain;
+    montg_t montg_domain_n, montg_domain_p, montg_domain_q;
     
     puts("montg init");
     clock_t start_montg_init = clock();
-    montg_init(&montg_domain, &pub_key.mod);
+    montg_init(&montg_domain_n, &pub_key.mod);
+    montg_init(&montg_domain_p, &pvt_key.p);
+    montg_init(&montg_domain_q, &pvt_key.q);
     clock_t end_montg_init = clock();
     double time_taken_montg_init = ((double) end_montg_init - start_montg_init) / CLOCKS_PER_SEC;
     printf("time: %lf\n", time_taken_montg_init);
     puts("");
 
 
-    const char test_msg[BN_MSG_LEN + 1];
-    char out_enc[BN_BYTE_SIZE * 2 + 1], out_dec[BN_MSG_LEN + 1];
+    const char test_msg[BN_MSG_LEN + 1] = "";
+    char out_enc[BN_BYTE_SIZE * 2 + 1] = "", out_dec[BN_MSG_LEN + 1] = "";
     size_t out_enc_len = sizeof(out_enc), out_dec_len = sizeof(out_dec);
 
     packet_t test_enc_packet;
@@ -63,12 +65,12 @@ int main() {
     test_enc_packet.time.minutes = 20;
     test_enc_packet.time.seconds = 30;
 
-    printf("%d) %02d:%02d:%02d\n", test_enc_packet.plc_number, test_enc_packet.time.hours, test_enc_packet.time.minutes, test_enc_packet.time.seconds);
+    printf("%u) %02u:%02u:%02u\n", test_enc_packet.plc_number, test_enc_packet.time.hours, test_enc_packet.time.minutes, test_enc_packet.time.seconds);
     memmove((char *)test_msg, &test_enc_packet, sizeof(packet_t));
 
     puts("encrypt");
     clock_t start_encrypt = clock();
-    encrypt_buf(&pub_key, &montg_domain, test_msg, sizeof(test_msg), out_enc, out_enc_len);
+    encrypt_buf(&pub_key, &montg_domain_n, test_msg, sizeof(test_msg), out_enc, out_enc_len);
     clock_t end_encrypt = clock();
     double time_taken_encrypt = ((double)end_encrypt - start_encrypt) / CLOCKS_PER_SEC;
     printf("time: %lf\n", time_taken_encrypt);
@@ -77,7 +79,7 @@ int main() {
 
     puts("decrypt");
     clock_t start_decrypt = clock();
-    decrypt_buf(&pvt_key, &montg_domain, out_enc, out_enc_len, out_dec, out_dec_len);
+    decrypt_buf(&pvt_key, &montg_domain_n, &montg_domain_p, &montg_domain_q, out_enc, out_enc_len, out_dec, out_dec_len);
     clock_t end_decrypt = clock();
     double time_taken_decrypt = ((double)end_decrypt - start_decrypt) / CLOCKS_PER_SEC;
     printf("time: %lf\n", time_taken_decrypt);
@@ -86,10 +88,13 @@ int main() {
     printf("coeff: %lf\n", time_taken_decrypt / time_taken_encrypt);
     puts("");
 
+    printf("total time: %lf\n", time_taken_montg_init + time_taken_encrypt + time_taken_decrypt);
+    puts("");
+
     packet_t test_dec_packet;
     memmove(&test_dec_packet, out_dec, sizeof(packet_t));
 
-    printf("%d) %02d:%02d:%02d\n", test_dec_packet.plc_number, test_dec_packet.time.hours, test_dec_packet.time.minutes, test_dec_packet.time.seconds);
+    printf("%u) %02u:%02u:%02u\n", test_dec_packet.plc_number, test_dec_packet.time.hours, test_dec_packet.time.minutes, test_dec_packet.time.seconds);
 
     puts(strcmp(test_msg, out_dec) == 0 ? "Работает" : "Увы");
 
