@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project(RSA VERSION 1.0)
 
-add_subdirectory(test)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -22,4 +20,6 @@ target_sources(rsa_test PRIVATE
     src/utils.c
 )
 
-target_include_directories(rsa_test PRIVATE include)
+target_include_directories(rsa_test PRIVATE ${PROJECT_SOURCE_DIR}/include)
+
+add_subdirectory(tests)
