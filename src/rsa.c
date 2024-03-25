@@ -12,7 +12,7 @@
 void import_pub_key(rsa_pub_key_t *key, const char *data) {
     const char begin[] = "-----BEGIN PUBLIC KEY-----\r\n";
     const char end[] = "-----END PUBLIC KEY-----\r\n";
-    size_t in_size = 2048; // FIXME: убрать константу и сделать зависимость от размера ключа
+    size_t in_size = 2048;
     char pem[in_size];
     strcpy(pem, data);
 
@@ -34,7 +34,6 @@ void import_pub_key(rsa_pub_key_t *key, const char *data) {
 
         base64_read((uint8_t *)data + beg_size, pem_size - beg_size - end_size, buffer, in_size);
 
-        // const size_t key_padding = 2;
         const size_t key_padding = asn1_get_padding_pub_key(buffer, in_size);
         read_ptr = buffer + key_padding;
 
@@ -57,7 +56,7 @@ void import_pub_key(rsa_pub_key_t *key, const char *data) {
 void import_pvt_key(rsa_pvt_key_t *key, const char *data) {
     const char begin[] = "-----BEGIN PRIVATE KEY-----\r\n";
     const char end[] = "-----END PRIVATE KEY-----\r\n";
-    size_t in_size = 9192; // FIXME: убрать константу и сделать зависимость от размера ключа
+    size_t in_size = 9192;
     char pem[in_size];
     strcpy(pem, data);
 
@@ -82,7 +81,6 @@ void import_pvt_key(rsa_pvt_key_t *key, const char *data) {
 
     base64_read((uint8_t *)data + beg_size, pem_size - beg_size - end_size, buffer, in_size);
 
-    // const size_t key_padding = 3;
     const size_t key_padding = asn1_get_padding_pvt_key(buffer, in_size);
     read_ptr = buffer + key_padding;
     read_size = asn1_get_int(read_ptr, &int_ptr, &int_size);
@@ -127,15 +125,6 @@ void encrypt_buf(const rsa_pub_key_t *key, const montg_t *montg_domain_n, const 
     encrypt(key, montg_domain_n, &in_bn, &out_bn);
     bn_to_string(&out_bn, bignum_out, bignum_out_len);
 }
-
-// void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain_n, const montg_t *montg_domain_p, const montg_t *montg_domain_q, const bignum_t *bignum_in, bignum_t *bignum_out) {
-//     bignum_t bignum_montg_in, bignum_montg_out;
-
-//     montg_transform(montg_domain_n, bignum_in, &bignum_montg_in);
-//     bn_init(&bignum_montg_out, BN_ARRAY_SIZE);
-//     montg_pow(montg_domain_n, &bignum_montg_in, &key->pvt_exp, &bignum_montg_out);
-//     montg_revert(montg_domain_n, &bignum_montg_out, bignum_out);
-// }
 
 void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain_n, const montg_t *montg_domain_p, const montg_t *montg_domain_q, const bignum_t *bignum_in, bignum_t *bignum_out) {
     bignum_t bignum_montg_p_in, bignum_montg_q_in, bignum_montg_p_out, bignum_montg_q_out, bignum_p_out, bignum_q_out, h, hq;

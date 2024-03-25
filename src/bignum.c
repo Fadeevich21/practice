@@ -1,5 +1,4 @@
 #include "bignum.h"
-#include "utils.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -8,8 +7,6 @@
 
 static void lshift_one_bit(bignum_t *bignum);
 static void rshift_one_bit(bignum_t *bignum);
-static void lshift_word(bignum_t *bignum, size_t nwords);
-static void rshift_word(bignum_t *bignum, size_t nwords);
 
 static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size_t in_bn_size);
 
@@ -17,7 +14,6 @@ void bn_fill(bignum_t *bignum, size_t offset, BN_DTYPE value, size_t count) {
     memset((*bignum) + offset, value, count * BN_WORD_SIZE);
 }
 
-// TODO: а правильно ли так делать?
 void bn_init(bignum_t *bignum, size_t size) {
     bn_fill(bignum, 0, 0, size);
 }
@@ -27,7 +23,6 @@ void bn_assign(bignum_t *bignum_dst, size_t bignum_dst_offset, const bignum_t *b
     memcpy((*bignum_dst) + bignum_dst_offset, (*bignum_src) + bignum_src_offset, count * BN_WORD_SIZE);
 }
 
-// TODO: проверить
 void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes) {
     bn_init(bignum, BN_ARRAY_SIZE);
 
@@ -36,20 +31,6 @@ void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes) 
     for (size_t i = 0; i < nbytes; ++i) {
         (*bignum)[(nbytes - 1 - i) / BN_WORD_SIZE] |= (BN_DTYPE)bytes[i] << ((BN_WORD_SIZE - 1 - i - padding) % BN_WORD_SIZE) * 8;
     }
-
-    // int bn_pos = nbytes / BN_WORD_SIZE + (nbytes % 4 != 0);
-
-    // for (size_t i = 0; i < nbytes; ++i) {
-    //     size_t shift = BN_WORD_SIZE - 1 - (i % BN_WORD_SIZE);
-    //     (*bignum)[bn_pos - 1 - i / BN_WORD_SIZE] |= (BN_DTYPE)bytes[i] << shift * 8;
-    // }
-
-    // char hex_str[nbytes * 2];
-    // for (size_t i = 0; i < nbytes; ++i) {
-    //     sprintf(hex_str + i * 2, "%02x", bytes[i]);
-    // }
-
-    // bn_from_string(bignum, hex_str, nbytes * 2);
 }
 
 void bn_from_string(bignum_t *bignum, const char *str, const size_t nbytes) {
@@ -119,27 +100,6 @@ void bn_sub(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_r
         (*bignum_res)[i] = (BN_DTYPE)(res & BN_MAX_VAL);
         borrow = res <= BN_MAX_VAL;
     }
-}
-
-// TODO: переписать
-void bn_mul(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
-    // bn_fill(bignum_res, 0, 0, size);
-    // for (size_t i = 0; i < size; ++i) {
-    //     bignum_t row;
-    //     bn_init(&row, size);
-    //     for (size_t j = 0; j < size; ++j) {
-    //         if (i + j >= size) {
-    //             break;
-    //         }
-
-    //         bignum_t tmp;
-    //         BN_DTYPE_TMP intermediate = ((BN_DTYPE_TMP)(*bignum1)[i] * (BN_DTYPE_TMP)(*bignum2)[j]);
-    //         bn_from_int(&tmp, intermediate);
-    //         lshift_word(&tmp, i + j);
-    //         bn_add(&tmp, &row, &row, size);
-    //     }
-    //     bn_add(bignum_res, &row, bignum_res, size);
-    // }
 }
 
 void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
@@ -259,61 +219,9 @@ void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignu
     bn_sub(bignum1, &tmp, bignum_mod, size);
 }
 
-void bn_and(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
-    for (size_t i = 0; i < size; ++i) {
-        (*bignum_res)[i] = (*bignum1)[i] & (*bignum2)[i];
-    }
-}
-
 void bn_or(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     for (size_t i = 0; i < size; ++i) {
         (*bignum_res)[i] = (*bignum1)[i] | (*bignum2)[i];
-    }
-}
-
-void bn_xor(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
-    for (size_t i = 0; i < size; ++i) {
-        (*bignum_res)[i] = (*bignum1)[i] ^ (*bignum2)[i];
-    }
-}
-
-void bn_lshift(const bignum_t *bignum, bignum_t *bignum_res, size_t nbits) {
-    bn_assign(bignum_res, 0, bignum, 0, BN_ARRAY_SIZE);
-
-    const size_t nbits_pr_word = BN_WORD_SIZE * 8;
-    size_t nwords = nbits / nbits_pr_word;
-    if (nwords != 0) {
-        lshift_word(bignum_res, nwords);
-        nbits -= nwords * nbits_pr_word;
-    }
-
-    if (nbits != 0) {
-        size_t i;
-        for (i = BN_ARRAY_SIZE - 1; i > 0; --i) {
-            (*bignum_res)[i] =
-                ((*bignum_res)[i] << nbits) | ((*bignum_res)[i - 1] >> (BN_WORD_SIZE * 8 - nbits));
-        }
-        (*bignum_res)[i] <<= nbits;
-    }
-}
-
-void bn_rshift(const bignum_t *bignum, bignum_t *bignum_res, size_t nbits) {
-    bn_assign(bignum_res, 0, bignum, 0, BN_ARRAY_SIZE);
-
-    const size_t nbits_pr_word = BN_WORD_SIZE * 8;
-    size_t nwords = nbits / nbits_pr_word;
-    if (nwords != 0) {
-        rshift_word(bignum_res, nwords);
-        nbits -= nwords * nbits_pr_word;
-    }
-
-    if (nbits != 0) {
-        size_t i;
-        for (i = 0; i < BN_ARRAY_SIZE - 1; ++i) {
-            (*bignum_res)[i] =
-                ((*bignum_res)[i] >> nbits) | ((*bignum_res)[i + 1] << (BN_WORD_SIZE * 8 - nbits));
-        }
-        (*bignum_res)[i] >>= nbits;
     }
 }
 
@@ -340,28 +248,6 @@ uint8_t bn_is_zero(const bignum_t *bignum, size_t size) {
     return 1;
 }
 
-void bn_inc(bignum_t *bignum) {
-    BN_DTYPE_TMP tmp;
-    for (size_t i = 0; i < BN_ARRAY_SIZE; ++i) {
-        tmp = (*bignum)[i];
-        (*bignum)[i] = tmp + 1;
-        if ((*bignum)[i] > tmp) {
-            break;
-        }
-    }
-}
-
-void bn_dec(bignum_t *bignum) {
-    BN_DTYPE tmp;
-    for (size_t i = 0; i < BN_ARRAY_SIZE; ++i) {
-        tmp = (*bignum)[i];
-        (*bignum)[i] = tmp - 1;
-        if ((*bignum)[i] <= tmp) {
-            break;
-        }
-    }
-}
-
 static void lshift_one_bit(bignum_t *bignum) {
     for (size_t i = BN_ARRAY_SIZE - 1; i > 0; --i) {
         (*bignum)[i] = ((*bignum)[i] << 1) | ((*bignum)[i - 1] >> (BN_WORD_SIZE * 8 - 1));
@@ -374,26 +260,6 @@ static void rshift_one_bit(bignum_t *bignum) {
         (*bignum)[i] = ((*bignum)[i] >> 1) | ((*bignum)[i + 1] << (BN_WORD_SIZE * 8 - 1));
     }
     (*bignum)[BN_ARRAY_SIZE - 1] >>= 1;
-}
-
-static void lshift_word(bignum_t *bignum, size_t nwords) {
-    if (nwords >= BN_ARRAY_SIZE) {
-        bn_fill(bignum, 0, 0, BN_ARRAY_SIZE);
-        return;
-    }
-
-    bn_assign(bignum, nwords, bignum, 0, BN_ARRAY_SIZE - nwords);
-    bn_fill(bignum, 0, 0, nwords);
-}
-
-static void rshift_word(bignum_t *bignum, size_t nwords) {
-    if (nwords >= BN_ARRAY_SIZE) {
-        bn_fill(bignum, 0, 0, BN_ARRAY_SIZE);
-        return;
-    }
-
-    bn_assign(bignum, 0, bignum, nwords, BN_ARRAY_SIZE - nwords);
-    bn_fill(bignum, BN_ARRAY_SIZE - nwords, 0, nwords);
 }
 
 size_t bn_bitcount(const bignum_t *bignum) {

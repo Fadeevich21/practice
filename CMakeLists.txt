@@ -8,18 +8,17 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-O3)
 add_compile_options(-march=native)
 
-add_executable(rsa_test)
+add_executable(rsa)
 
-target_sources(rsa_test PRIVATE
+target_sources(rsa PRIVATE
     src/main.c
     src/bignum.c
     src/rsa.c
     src/asn1.c
     src/base64.c
     src/montgomery.c
-    src/utils.c
 )
 
-target_include_directories(rsa_test PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(rsa PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 add_subdirectory(tests)

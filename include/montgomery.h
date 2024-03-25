@@ -18,6 +18,5 @@ void montg_transform(const montg_t *md, const bignum_t *val, bignum_t *res);
 void montg_revert(const montg_t *md, const bignum_t *val, bignum_t *res);
 void montg_mul(const montg_t *md, const bignum_t *lhs, const bignum_t *rhs, bignum_t *res);
 void montg_pow(const montg_t *md, const bignum_t *b, const bignum_t *exp, bignum_t *res);
-void montg_square(const montg_t *md, const bignum_t *b, bignum_t *res);
 
 #endif
