@@ -2,15 +2,13 @@
 #define __MONTGOMERY_H__
 
 #include "bignum.h"
-#include <stdint.h>
-
 
 typedef struct montgomery_domain {
     bignum_t mod;
     bignum_t r;
     bignum_t r_inv;
-    uint64_t shift;
-    uint64_t shift_byte_size;
+    BN_DTYPE_TMP shift;
+    BN_DTYPE_TMP shift_byte_size;
 } montg_t;
 
 void montg_init(montg_t *md, const bignum_t *mod);

@@ -6,15 +6,23 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define BN_DTYPE uint32_t
-#define BN_DTYPE_TMP uint64_t
-#define BN_DTYPE_MSB ((BN_DTYPE_TMP)0x80000000)
-#define BN_SPRINTF_FORMAT_STR "%.08x"
-#define BN_SSCANF_FORMAT_STR "%8x"
-#define BN_MAX_VAL ((BN_DTYPE_TMP)0xFFFFFFFF)
-#define BN_WORD_SIZE (sizeof(BN_DTYPE))
+#define BN_WORD_SIZE 4 // bytes
 
-#define KEY_SIZE (512) // bits
+#if (BN_WORD_SIZE == 2)
+    #define BN_DTYPE uint16_t
+    #define BN_DTYPE_TMP uint32_t
+    #define BN_SPRINTF_FORMAT_STR "%.04hx"
+    #define BN_SSCANF_FORMAT_STR "%4hx"
+    #define BN_MAX_VAL ((BN_DTYPE_TMP)0xFFFF)
+#elif (BN_WORD_SIZE == 4)
+    #define BN_DTYPE uint32_t
+    #define BN_DTYPE_TMP uint64_t
+    #define BN_SPRINTF_FORMAT_STR "%.08x"
+    #define BN_SSCANF_FORMAT_STR "%8x"
+    #define BN_MAX_VAL ((BN_DTYPE_TMP)0xFFFFFFFF)
+#endif
+
+#define KEY_SIZE (4096) // bits
 #define BN_MSG_LEN (KEY_SIZE / 8)
 #define BN_BYTE_SIZE (BN_MSG_LEN * 2)
 

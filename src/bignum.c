@@ -127,8 +127,8 @@ static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size
 
     const size_t z_size = 2;
     bignum_t z[z_size];
-    bignum_t* z0_ptr = (bignum_t *)((uint32_t *) z + 0);
-    bignum_t* z1_ptr = (bignum_t *)((uint32_t *) z + (in_bn_size << 1));
+    bignum_t* z0_ptr = (bignum_t *)((BN_DTYPE *) z + 0);
+    bignum_t* z1_ptr = (bignum_t *)((BN_DTYPE *) z + (in_bn_size << 1));
     memset(z, 0, z_size * (in_bn_size << 1) * BN_WORD_SIZE);
 
     const size_t bn_size_shift = in_bn_size >> 1;

@@ -21,4 +21,3 @@ target_sources(rsa PRIVATE
 
 target_include_directories(rsa PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
-add_subdirectory(tests)
