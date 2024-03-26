@@ -4,7 +4,12 @@
 #include <string.h>
 #include <time.h>
 
-// Extended Euclidian algorithm
+/**
+ * \brief Расширенный алгоритм Евклида
+ * @param val Число
+ * @param mod Модуль
+ * @param res Результат
+ */
 static void montg_inverse(const bignum_t *val, const bignum_t *mod, bignum_t *res) {
     if (bn_cmp(val, mod, BN_ARRAY_SIZE) != BN_CMP_SMALLER) {
         return;
@@ -44,7 +49,11 @@ static void montg_inverse(const bignum_t *val, const bignum_t *mod, bignum_t *re
     // Если b != 1 в конце, то res не существует. Данная функция не учитывает этот случай.
 }
 
-// mod - RSA key mod
+/**
+ * \brief Инициализация пространства montgomery
+ * @param md Пространство montgomery
+ * @param mod Модуль
+ */
 void montg_init(montg_t *md, const bignum_t *mod) {
     if (mod == NULL) {
         return;
@@ -62,6 +71,12 @@ void montg_init(montg_t *md, const bignum_t *mod) {
     montg_inverse(&md->r_inv, &md->r, &md->r_inv);
 }
 
+/**
+ * \brief Перевод числа в пространство montgomery
+ * @param md Пространство montgomery
+ * @param val Число
+ * @param res Результат
+ */
 void montg_transform(const montg_t *md, const bignum_t *val, bignum_t *res) {
     bignum_t temp;
     memmove(temp + md->shift, *val, md->shift_byte_size);
@@ -69,12 +84,25 @@ void montg_transform(const montg_t *md, const bignum_t *val, bignum_t *res) {
     bn_mod(&temp, &md->mod, res, BN_ARRAY_SIZE);
 }
 
+/**
+ * \brief Перевод числа из пространства montgomery
+ * @param md Пространство montgomery
+ * @param val Число
+ * @param res Результат
+ */
 void montg_revert(const montg_t *md, const bignum_t *val, bignum_t *res) {
     bignum_t one;
     bn_from_int(&one, 1, BN_ARRAY_SIZE);
     montg_mul(md, val, &one, res);
 }
 
+/**
+ * \brief Умножение больших чисел в пространстве montgomery
+ * @param md Пространство montgomery
+ * @param lhs Первый множитель
+ * @param rhs Второй множитель
+ * @param res Результат
+ */
 void montg_mul(const montg_t *md, const bignum_t *lhs, const bignum_t *rhs, bignum_t *res) {
     bignum_t m, m_r_inv, t;
     uint8_t overflow = 0;
@@ -103,6 +131,13 @@ void montg_mul(const montg_t *md, const bignum_t *lhs, const bignum_t *rhs, bign
     }
 }
 
+/**
+ * \brief Возведение большого числа в степень в пространстве montgomery
+ * @param md Пространство montgomery
+ * @param b Число
+ * @param exp Степень
+ * @param res Результат
+ */
 void montg_pow(const montg_t *md, const bignum_t *b, const bignum_t *exp, bignum_t *res) {
     bn_assign(res, 0, b, 0, BN_ARRAY_SIZE);
     

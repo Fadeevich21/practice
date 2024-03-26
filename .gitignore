@@ -3,3 +3,5 @@
 build
 run.sh
 tests
+cmake-build-debug
+.idea

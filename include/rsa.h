@@ -5,11 +5,17 @@
 #include "montgomery.h"
 #include <stddef.h>
 
+/**
+ * \brief Публичный ключ
+ */
 typedef struct {
     bignum_t mod;
     bignum_t pub_exp;
 } rsa_pub_key_t;
 
+/**
+ * \brief Приватный ключ
+ */
 typedef struct {
     bignum_t mod;
     bignum_t pub_exp;

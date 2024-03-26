@@ -6,23 +6,50 @@
 #include <strings.h>
 
 static void lshift_one_bit(bignum_t *bignum);
+
 static void rshift_one_bit(bignum_t *bignum);
 
-static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size_t in_bn_size);
+static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, size_t in_bn_size);
 
+/**
+ * \brief Заполнение числа значением
+ * @param bignum Число
+ * @param offset Отступ с начала числа
+ * @param value Записываемое число
+ * @param count Количество записываемых чисел
+ */
 void bn_fill(bignum_t *bignum, size_t offset, BN_DTYPE value, size_t count) {
     memset((*bignum) + offset, value, count * BN_WORD_SIZE);
 }
 
+/**
+ * \brief Инициализация числа
+ * @param bignum Число
+ * @param size Размер числа
+ */
 void bn_init(bignum_t *bignum, size_t size) {
     bn_fill(bignum, 0, 0, size);
 }
 
+/**
+ * \brief Присвоение числа
+ * @param bignum_dst Число назначения
+ * @param bignum_dst_offset Отступ числа назначения
+ * @param bignum_src Исходное число
+ * @param bignum_src_offset Отступ исходного числа
+ * @param count Размер чисел
+ */
 void bn_assign(bignum_t *bignum_dst, size_t bignum_dst_offset, const bignum_t *bignum_src, size_t bignum_src_offset,
                size_t count) {
     memcpy((*bignum_dst) + bignum_dst_offset, (*bignum_src) + bignum_src_offset, count * BN_WORD_SIZE);
 }
 
+/**
+ * \brief Приведение байтов в большое число
+ * @param bignum Число
+ * @param bytes Массив байтов
+ * @param nbytes Количесво байтов
+ */
 void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes) {
     bn_init(bignum, BN_ARRAY_SIZE);
 
@@ -33,6 +60,12 @@ void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes) 
     }
 }
 
+/**
+ * \brief Приведение строки в большое число
+ * @param bignum Число
+ * @param str Строка
+ * @param nbytes Размер строки
+ */
 void bn_from_string(bignum_t *bignum, const char *str, const size_t nbytes) {
     bn_init(bignum, BN_ARRAY_SIZE);
 
@@ -47,6 +80,12 @@ void bn_from_string(bignum_t *bignum, const char *str, const size_t nbytes) {
     }
 }
 
+/**
+ * \brief Приведение числа в большое число
+ * @param bignum Число
+ * @param value Исходное число
+ * @param size Размер исходного числа
+ */
 void bn_from_int(bignum_t *bignum, const BN_DTYPE_TMP value, size_t size) {
     bn_init(bignum, size);
 
@@ -56,6 +95,12 @@ void bn_from_int(bignum_t *bignum, const BN_DTYPE_TMP value, size_t size) {
     }
 }
 
+/**
+ * Приведение большого числа в строку
+ * @param bignum Число
+ * @param str Строка
+ * @param nbytes Размер строки
+ */
 void bn_to_string(const bignum_t *bignum, char *str, size_t nbytes) {
     int j = BN_ARRAY_SIZE - 1;
     size_t i = 0;
@@ -68,6 +113,13 @@ void bn_to_string(const bignum_t *bignum, char *str, size_t nbytes) {
     str[i] = '\0';
 }
 
+/**
+ * \brief Сложение
+ * @param bignum1 Первое слагаемое
+ * @param bignum2 Второе слагаемое
+ * @param bignum_res Сумма
+ * @param size Размер чисел
+ */
 void bn_add(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     uint8_t carry = 0;
     for (size_t i = 0; i < size; ++i) {
@@ -77,6 +129,13 @@ void bn_add(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_r
     }
 }
 
+/**
+ * \brief Сложение (с учётом последнего переноса)
+ * @param bignum1 Первое слагаемое
+ * @param bignum2 Второе слагаемое
+ * @param bignum_res Сумма
+ * @param size Размер чисел
+ */
 void bn_add_carry(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     uint8_t carry = 0;
     for (size_t i = 0; i + 1 < size; ++i) {
@@ -87,6 +146,13 @@ void bn_add_carry(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bi
     (*bignum_res)[size - 1] = carry;
 }
 
+/**
+ * \brief Разность
+ * @param bignum1 Уменьшаемое
+ * @param bignum2 Вычитаемое
+ * @param bignum_res Разность
+ * @param size Размер чисел
+ */
 void bn_sub(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     if (bn_cmp(bignum1, bignum2, size) == BN_CMP_SMALLER) {
         return;
@@ -102,11 +168,24 @@ void bn_sub(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_r
     }
 }
 
+/**
+ * \brief Умножение алгоритмом Карацубы
+ * @param bignum1 Первый множитель
+ * @param bignum2 Второй множитель
+ * @param bignum_res Произведение
+ * @param size Размер чисел
+ */
 void bn_karatsuba(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     bn_assign(bignum_res, 0, bignum1, 0, size >> 1);
     bn_inner_karatsuba(bignum_res, bignum2, size >> 1);
 }
 
+/**
+ * \brief Рекурсивная функция умножения больших чисел алгоритмом Карацубы
+ * @param left Первый множитель / произведение
+ * @param right Второй множитель
+ * @param in_bn_size Размер чисел
+ */
 static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size_t in_bn_size) {
     if (in_bn_size == 1) {
         bn_from_int(left, (BN_DTYPE_TMP)(*left)[0] * (BN_DTYPE_TMP)(*right)[0], 2);
@@ -160,6 +239,13 @@ static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size
     bn_add(left, z1_ptr, left, in_bn_size << 1);
 }
 
+/**
+ * \brief Деление
+ * @param bignum1 Делимое
+ * @param bignum2 Делитель
+ * @param bignum_res Частное
+ * @param size Размер чисел
+ */
 void bn_div(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     if (bn_is_zero(bignum2, size)) {
         return;
@@ -199,6 +285,13 @@ void bn_div(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_r
     }
 }
 
+/**
+ * \brief Получение модуля числа
+ * @param bignum1 Делимое
+ * @param bignum2 Делитель
+ * @param bignum_res Остаток
+ * @param size Размер чисел
+ */
 void bn_mod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     if (bn_is_zero(bignum2, size)) {
         return;
@@ -208,6 +301,14 @@ void bn_mod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_r
     bn_divmod(bignum1, bignum2, &tmp, bignum_res, size);
 }
 
+/**
+ * Нахождение частного и остатка от деления
+ * @param bignum1 Делимое
+ * @param bignum2 Делитель
+ * @param bignum_div Частное
+ * @param bignum_mod Остаток
+ * @param size Размер чисел
+ */
 void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_div, bignum_t *bignum_mod, size_t size) {
     if (bn_is_zero(bignum2, size)) {
         return;
@@ -219,12 +320,26 @@ void bn_divmod(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignu
     bn_sub(bignum1, &tmp, bignum_mod, size);
 }
 
+/**
+ * \brief Побитовое ИЛИ
+ * @param bignum1 Первый операнд
+ * @param bignum2 Второй операнд
+ * @param bignum_res Результат
+ * @param size Размер чисел
+ */
 void bn_or(const bignum_t *bignum1, const bignum_t *bignum2, bignum_t *bignum_res, size_t size) {
     for (size_t i = 0; i < size; ++i) {
         (*bignum_res)[i] = (*bignum1)[i] | (*bignum2)[i];
     }
 }
 
+/**
+ * \brief Сравнение чисел
+ * @param bignum1 Первый операнд
+ * @param bignum2 Второй операнд
+ * @param size Размер чисел
+ * @return Результат сранения чисел
+ */
 bignum_compare_state bn_cmp(const bignum_t *bignum1, const bignum_t *bignum2, size_t size) {
     do {
         --size;
@@ -238,6 +353,12 @@ bignum_compare_state bn_cmp(const bignum_t *bignum1, const bignum_t *bignum2, si
     return BN_CMP_EQUAL;
 }
 
+/**
+ * \brief Проверка, что число является нулём
+ * @param bignum Операнд
+ * @param size Размер числа
+ * @return Результат
+ */
 uint8_t bn_is_zero(const bignum_t *bignum, size_t size) {
     for (size_t i = 0; i < size; ++i) {
         if ((*bignum)[i] != 0) {
@@ -248,6 +369,10 @@ uint8_t bn_is_zero(const bignum_t *bignum, size_t size) {
     return 1;
 }
 
+/**
+ * \brief Смещение влево на 1 бит
+ * @param bignum Число
+ */
 static void lshift_one_bit(bignum_t *bignum) {
     for (size_t i = BN_ARRAY_SIZE - 1; i > 0; --i) {
         (*bignum)[i] = ((*bignum)[i] << 1) | ((*bignum)[i - 1] >> (BN_WORD_SIZE * 8 - 1));
@@ -255,6 +380,10 @@ static void lshift_one_bit(bignum_t *bignum) {
     (*bignum)[0] <<= 1;
 }
 
+/**
+ * \brief Смещение вправо на 1 бит
+ * @param bignum Число
+ */
 static void rshift_one_bit(bignum_t *bignum) {
     for (size_t i = 0; i < BN_ARRAY_SIZE - 1; ++i) {
         (*bignum)[i] = ((*bignum)[i] >> 1) | ((*bignum)[i + 1] << (BN_WORD_SIZE * 8 - 1));
@@ -262,6 +391,11 @@ static void rshift_one_bit(bignum_t *bignum) {
     (*bignum)[BN_ARRAY_SIZE - 1] >>= 1;
 }
 
+/**
+ * \brief Получение количества бит
+ * @param bignum Число
+ * @return Количество бит
+ */
 size_t bn_bitcount(const bignum_t *bignum) {
     size_t bits = (BN_BYTE_SIZE << 3) - (BN_WORD_SIZE << 3);
     int i;

@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ * \brief Теги, которые могут встретиться в структуре asn1
+ */
 typedef enum {
     ASN1_INTEGER = 0x02,
     ASN1_BIT_STRING = 0x03,
@@ -21,8 +24,8 @@ typedef enum {
 
 int asn1_get_int(const uint8_t *buffer, const uint8_t **int_ptr, size_t *bytes);
 
-size_t asn1_get_padding_pub_key(const uint8_t *buffer, size_t size);
-size_t asn1_get_padding_pvt_key(const uint8_t *buffer, size_t size);
+size_t asn1_get_padding_pub_key(const uint8_t *buffer);
+size_t asn1_get_padding_pvt_key(const uint8_t *buffer);
 
 size_t asn1_get_len(const uint8_t *buffer);
 
