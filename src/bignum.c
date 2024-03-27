@@ -10,21 +10,29 @@ static void rshift_one_bit(bignum_t *bignum);
 
 static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size_t in_bn_size);
 
-void bn_fill(bignum_t *bignum, size_t offset, BN_DTYPE value, size_t count) {
+// memset может выйти за границы bignum, никак не проверяется
+void bn_memset(bignum_t *bignum, const size_t offset, const int value, const size_t count) {
     memset((*bignum) + offset, value, count * BN_WORD_SIZE);
 }
 
-void bn_init(bignum_t *bignum, size_t size) {
-    bn_fill(bignum, 0, 0, size);
+void bn_init(bignum_t *bignum, const size_t size) {
+    bn_memset(bignum, 0, 0, size);
 }
 
-void bn_assign(bignum_t *bignum_dst, size_t bignum_dst_offset, const bignum_t *bignum_src, size_t bignum_src_offset,
-               size_t count) {
+// memcpy может выйти за границы bignum_dst и/или bignum_src, никак не проверяется
+void bn_assign(bignum_t *bignum_dst, const size_t bignum_dst_offset, const bignum_t *bignum_src,
+               const size_t bignum_src_offset, const size_t count)
+{
     memcpy((*bignum_dst) + bignum_dst_offset, (*bignum_src) + bignum_src_offset, count * BN_WORD_SIZE);
 }
 
 void bn_from_bytes(bignum_t *bignum, const uint8_t *bytes, const size_t nbytes) {
     bn_init(bignum, BN_ARRAY_SIZE);
+
+    // Хорошо бы было вернуть какой-нибудь код ошибки
+    if (nbytes > BN_BYTE_SIZE) {
+        return;
+    }
 
     uint8_t padding = ((nbytes - 1) / BN_WORD_SIZE + 1) * BN_WORD_SIZE - nbytes;
 
@@ -47,6 +55,7 @@ void bn_from_string(bignum_t *bignum, const char *str, const size_t nbytes) {
     }
 }
 
+// from_int не самое удачное название
 void bn_from_int(bignum_t *bignum, const BN_DTYPE_TMP value, size_t size) {
     bn_init(bignum, size);
 
@@ -60,8 +69,10 @@ void bn_to_string(const bignum_t *bignum, char *str, size_t nbytes) {
     int j = BN_ARRAY_SIZE - 1;
     size_t i = 0;
     while (j >= 0 && nbytes > i + 1) {
-        sprintf(&str[i], BN_SPRINTF_FORMAT_STR, (*bignum)[j]);
-        i += sizeof(BN_DTYPE_TMP);
+        if ((*bignum)[j]) {
+            sprintf(&str[i], BN_SPRINTF_FORMAT_STR, (*bignum)[j]);
+            i += sizeof(BN_DTYPE_TMP);
+        }
         --j;
     }
 
@@ -115,20 +126,20 @@ static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size
     
     const uint8_t left_is_zero = bn_is_zero(left, in_bn_size);
     if (left_is_zero) {
-        bn_fill(left, in_bn_size, 0, in_bn_size);
+        bn_memset(left, in_bn_size, 0, in_bn_size);
         return;
     }
 
     const uint8_t right_is_zero = bn_is_zero(right, in_bn_size);
     if (right_is_zero) {
-        bn_fill(left, 0, 0, in_bn_size << 1);
+        bn_memset(left, 0, 0, in_bn_size << 1);
         return;
     }
 
     const size_t z_size = 2;
     bignum_t z[z_size];
-    bignum_t* z0_ptr = (bignum_t *)((uint32_t *) z + 0);
-    bignum_t* z1_ptr = (bignum_t *)((uint32_t *) z + (in_bn_size << 1));
+    bignum_t* z0_ptr = (bignum_t *)((BN_DTYPE *) z + 0);
+    bignum_t* z1_ptr = (bignum_t *)((BN_DTYPE *) z + (in_bn_size << 1));
     memset(z, 0, z_size * (in_bn_size << 1) * BN_WORD_SIZE);
 
     const size_t bn_size_shift = in_bn_size >> 1;
@@ -149,13 +160,13 @@ static void bn_inner_karatsuba(bignum_t *left, const bignum_t *right, const size
     bn_sub(z0_ptr, z1_ptr, z0_ptr, in_bn_size << 1);
 
     // left = L1 * R1
-    bn_fill(left, bn_size_shift, 0, in_bn_size + bn_size_shift);
+    bn_memset(left, bn_size_shift, 0, in_bn_size + bn_size_shift);
     bn_inner_karatsuba(left, right, bn_size_shift);
     bn_sub(z0_ptr, left, z0_ptr, in_bn_size << 1);
 
     // Result Z2 + Z1 + Z0 (shift adjusted)
     bn_assign(left, in_bn_size, z1_ptr, 0, in_bn_size);
-    bn_fill(z1_ptr, 0, 0, bn_size_shift);
+    bn_memset(z1_ptr, 0, 0, bn_size_shift);
     bn_assign(z1_ptr, bn_size_shift, z0_ptr, 0, in_bn_size + 1);
     bn_add(left, z1_ptr, left, in_bn_size << 1);
 }

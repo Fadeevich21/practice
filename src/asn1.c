@@ -22,7 +22,7 @@ int asn1_get_int(const uint8_t *buffer, const uint8_t **int_ptr, size_t *nbytes)
     return *nbytes + int_index;
 }
 
-size_t asn1_get_padding_pub_key(const uint8_t *buffer, size_t size) {
+size_t asn1_get_padding_pub_key(const uint8_t *buffer) {
     size_t i = 0;
     if (buffer[i] != ASN1_SEQUENCE) {
         return -1;
@@ -64,7 +64,7 @@ size_t asn1_get_padding_pub_key(const uint8_t *buffer, size_t size) {
     return i;
 }
 
-size_t asn1_get_padding_pvt_key(const uint8_t *buffer, size_t size) {
+size_t asn1_get_padding_pvt_key(const uint8_t *buffer) {
     size_t i = 0;
     if (buffer[i] != ASN1_SEQUENCE) {
         return -1;

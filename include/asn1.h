@@ -21,8 +21,8 @@ typedef enum {
 
 int asn1_get_int(const uint8_t *buffer, const uint8_t **int_ptr, size_t *bytes);
 
-size_t asn1_get_padding_pub_key(const uint8_t *buffer, size_t size);
-size_t asn1_get_padding_pvt_key(const uint8_t *buffer, size_t size);
+size_t asn1_get_padding_pub_key(const uint8_t *buffer);
+size_t asn1_get_padding_pvt_key(const uint8_t *buffer);
 
 size_t asn1_get_len(const uint8_t *buffer);
 

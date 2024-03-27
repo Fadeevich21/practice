@@ -49,7 +49,6 @@ int main() {
 
     const char test_msg[BN_MSG_LEN + 1] = "";
     char out_enc[BN_BYTE_SIZE * 2 + 1] = "", out_dec[BN_MSG_LEN + 1] = "";
-    size_t out_enc_len = sizeof(out_enc), out_dec_len = sizeof(out_dec);
 
     packet_t test_enc_packet;
     test_enc_packet.plc_number = 21;
@@ -59,10 +58,10 @@ int main() {
 
     printf("%u) %02u:%02u:%02u\n", test_enc_packet.plc_number, test_enc_packet.time.hours, test_enc_packet.time.minutes, test_enc_packet.time.seconds);
     memmove((char *)test_msg, &test_enc_packet, sizeof(packet_t));
-    encrypt_buf(&pub_key, &montg_domain_n, test_msg, sizeof(test_msg), out_enc, out_enc_len);
+    encrypt_buf(&pub_key, &montg_domain_n, test_msg, sizeof(test_msg), out_enc, sizeof(out_enc));
 
     packet_t test_dec_packet;
-    decrypt_buf(&pvt_key, &montg_domain_n, &montg_domain_p, &montg_domain_q, out_enc, out_enc_len, out_dec, out_dec_len);
+    decrypt_buf(&pvt_key, &montg_domain_n, &montg_domain_p, &montg_domain_q, out_enc, strlen(out_enc), out_dec, sizeof(out_dec));
     memmove(&test_dec_packet, out_dec, sizeof(packet_t));
     
     printf("%u) %02u:%02u:%02u\n", test_dec_packet.plc_number, test_dec_packet.time.hours, test_dec_packet.time.minutes, test_dec_packet.time.seconds);

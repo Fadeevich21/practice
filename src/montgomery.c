@@ -10,15 +10,11 @@ static void montg_inverse(const bignum_t *val, const bignum_t *mod, bignum_t *re
         return;
     }
 
-    bignum_t n, b, q, r, t1, t3;
+    bignum_t n, b, q = {0}, r = {0}, t1 = {0}, t3 = {0};
     bignum_t *n_ptr = &n, *b_ptr = &b, *q_ptr = &q, *r_ptr = &r, *t1_ptr = &t1, *t3_ptr = &t3;
     bn_assign(&n, 0, mod, 0, BN_ARRAY_SIZE);
     bn_assign(&b, 0, val, 0, BN_ARRAY_SIZE);
-    bn_init(&q, BN_ARRAY_SIZE);
-    bn_init(&r, BN_ARRAY_SIZE);
-    bn_init(&t1, BN_ARRAY_SIZE);
     bn_from_int(res, 1, BN_ARRAY_SIZE);
-    bn_init(&t3, BN_ARRAY_SIZE);
 
     bn_divmod(&n, &b, &q, &r, BN_ARRAY_SIZE);
     bn_karatsuba(res, &q, &t3, BN_ARRAY_SIZE);

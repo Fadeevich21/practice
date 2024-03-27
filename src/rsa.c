@@ -34,7 +34,7 @@ void import_pub_key(rsa_pub_key_t *key, const char *data) {
 
         base64_read((uint8_t *)data + beg_size, pem_size - beg_size - end_size, buffer, in_size);
 
-        const size_t key_padding = asn1_get_padding_pub_key(buffer, in_size);
+        const size_t key_padding = asn1_get_padding_pub_key(buffer);
         read_ptr = buffer + key_padding;
 
         read_size = asn1_get_int(read_ptr, &int_ptr, &int_size);
@@ -81,7 +81,7 @@ void import_pvt_key(rsa_pvt_key_t *key, const char *data) {
 
     base64_read((uint8_t *)data + beg_size, pem_size - beg_size - end_size, buffer, in_size);
 
-    const size_t key_padding = asn1_get_padding_pvt_key(buffer, in_size);
+    const size_t key_padding = asn1_get_padding_pvt_key(buffer);
     read_ptr = buffer + key_padding;
     read_size = asn1_get_int(read_ptr, &int_ptr, &int_size);
     if (read_size == -1) {
@@ -107,35 +107,31 @@ void import_pvt_key(rsa_pvt_key_t *key, const char *data) {
     }
 }
 
-void encrypt(const rsa_pub_key_t *key, const montg_t *montg_domain_n, const bignum_t *bignum_in, bignum_t *bignum_out) {
-    bignum_t bignum_montg_in, bignum_montg_out;
+static void encrypt(const rsa_pub_key_t *key, const montg_t *montg_domain_n, const bignum_t *bignum_in, bignum_t *bignum_out) {
+    bignum_t bignum_montg_in, bignum_montg_out = {0};
 
     montg_transform(montg_domain_n, bignum_in, &bignum_montg_in);
-    bn_init(&bignum_montg_out, BN_ARRAY_SIZE);
 
     montg_pow(montg_domain_n, &bignum_montg_in, &key->pub_exp, &bignum_montg_out);
     montg_revert(montg_domain_n, &bignum_montg_out, bignum_out);
 }
 
-void encrypt_buf(const rsa_pub_key_t *key, const montg_t *montg_domain_n, const char *bignum_in, size_t bignum_in_len, char *bignum_out, size_t bignum_out_len) {
-    bignum_t in_bn, out_bn;
-    bn_init(&in_bn, BN_ARRAY_SIZE);
+void encrypt_buf(const rsa_pub_key_t *key, const montg_t *montg_domain_n, const char *buffer_in, size_t bignum_in_len, char *buffer_out, size_t bignum_out_len) {
+    bignum_t in_bn = {0}, out_bn;
 
-    memmove(in_bn, bignum_in, bignum_in_len * sizeof(char));
+    memmove(in_bn, buffer_in, bignum_in_len * sizeof(char));
     encrypt(key, montg_domain_n, &in_bn, &out_bn);
-    bn_to_string(&out_bn, bignum_out, bignum_out_len);
+    bn_to_string(&out_bn, buffer_out, bignum_out_len);
 }
 
-void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain_n, const montg_t *montg_domain_p, const montg_t *montg_domain_q, const bignum_t *bignum_in, bignum_t *bignum_out) {
-    bignum_t bignum_montg_p_in, bignum_montg_q_in, bignum_montg_p_out, bignum_montg_q_out, bignum_p_out, bignum_q_out, h, hq;
+static void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain_n, const montg_t *montg_domain_p, const montg_t *montg_domain_q, const bignum_t *bignum_in, bignum_t *bignum_out) {
+    bignum_t bignum_montg_p_in, bignum_montg_q_in, bignum_montg_p_out = {0}, bignum_montg_q_out = {0}, bignum_p_out, bignum_q_out, h, hq;
 
     montg_transform(montg_domain_p, bignum_in, &bignum_montg_p_in);
-    bn_init(&bignum_montg_p_out, BN_ARRAY_SIZE);
     montg_pow(montg_domain_p, &bignum_montg_p_in, &key->exp1, &bignum_montg_p_out);
     montg_revert(montg_domain_p, &bignum_montg_p_out, &bignum_p_out);
 
     montg_transform(montg_domain_q, bignum_in, &bignum_montg_q_in);
-    bn_init(&bignum_montg_q_out, BN_ARRAY_SIZE);
     montg_pow(montg_domain_q, &bignum_montg_q_in, &key->exp2, &bignum_montg_q_out);
     montg_revert(montg_domain_q, &bignum_montg_q_out, &bignum_q_out);
 
@@ -149,11 +145,10 @@ void decrypt(const rsa_pvt_key_t *key, const montg_t *montg_domain_n, const mont
     }
 }
 
-void decrypt_buf(const rsa_pvt_key_t *k, const montg_t *montg_domain_n, const montg_t *montg_domain_p, const montg_t *montg_domain_q, const char *bignum_in, size_t bignum_in_len, char *bignum_out, size_t bignum_out_len) {
-    bignum_t in_bn, out_bn;
-    bn_init(&in_bn, BN_ARRAY_SIZE);
+void decrypt_buf(const rsa_pvt_key_t *k, const montg_t *montg_domain_n, const montg_t *montg_domain_p, const montg_t *montg_domain_q, const char *buffer_in, size_t bignum_in_len, char *buffer_out, size_t bignum_out_len) {
+    bignum_t in_bn = {0}, out_bn;
 
-    bn_from_string(&in_bn, bignum_in, bignum_in_len - 1);
+    bn_from_string(&in_bn, buffer_in, bignum_in_len);
     decrypt(k, montg_domain_n, montg_domain_p, montg_domain_q, &in_bn, &out_bn);
-    memmove(bignum_out, out_bn, bignum_out_len * sizeof(uint8_t));
+    memmove(buffer_out, out_bn, bignum_out_len * sizeof(uint8_t));
 }
