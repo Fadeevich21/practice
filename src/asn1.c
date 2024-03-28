@@ -1,7 +1,6 @@
 #include "asn1.h"
 #include <stdint.h>
 
-// TODO: возможно, ошибка здесь
 int asn1_get_int(const uint8_t *buffer, const uint8_t **int_ptr, size_t *nbytes) {
     if (buffer[0] != ASN1_INTEGER) {
         return -1;
@@ -10,7 +9,6 @@ int asn1_get_int(const uint8_t *buffer, const uint8_t **int_ptr, size_t *nbytes)
     size_t int_index = 2 + (buffer[1] & ~0x7F ? buffer[1] & 0x7F : 0);
     size_t data_bytes = asn1_get_len(buffer + 1);
 
-    // TODO: возможно ли от этого избавиться?
     if (buffer[int_index] == 0 && data_bytes > 1) {
         ++int_index;
         --data_bytes;

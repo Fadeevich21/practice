@@ -2,3 +2,5 @@
 .vscode
 build
 run.sh
+.idea
+cmake-build-debug

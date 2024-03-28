@@ -22,19 +22,19 @@ static void montg_inverse(const bignum_t *val, const bignum_t *mod, bignum_t *re
     uint8_t sign = 1;
     // Оптимизации ниже добавил только потому, что montg_inverse - static функция, вызываемая с известными параметрами
     while (!bn_is_zero(&r, BN_ARRAY_SIZE)) {
-        bn_assign(&n, 0, &b, 0, BN_ARRAY_SIZE / 2 + 1);
-        bn_assign(&b, 0, &r, 0, BN_ARRAY_SIZE / 2);
-        bn_assign(&t1, 0, res, 0, BN_ARRAY_SIZE / 2);
-        bn_assign(res, 0, &t3, 0, BN_ARRAY_SIZE / 2);
+        bn_assign(&n, 0, &b, 0, BN_ARRAY_SIZE);
+        bn_assign(&b, 0, &r, 0, BN_ARRAY_SIZE);
+        bn_assign(&t1, 0, res, 0, BN_ARRAY_SIZE);
+        bn_assign(res, 0, &t3, 0, BN_ARRAY_SIZE);
 
         bn_divmod(n_ptr, b_ptr, &q, &r, BN_ARRAY_SIZE);
         bn_karatsuba(res, &q, &t3, BN_ARRAY_SIZE);
-        bn_add(&t3, &t1, &t3, BN_ARRAY_SIZE / 2 + 1);
+        bn_add(&t3, &t1, &t3, BN_ARRAY_SIZE);
         sign = !sign;
     }
 
     if (!sign) {
-        bn_sub(mod, res, res, BN_ARRAY_SIZE / 2 + 1);
+        bn_sub(mod, res, res, BN_ARRAY_SIZE);
     }
 
     // Если b != 1 в конце, то res не существует. Данная функция не учитывает этот случай.

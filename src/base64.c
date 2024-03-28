@@ -23,10 +23,15 @@ int base64_read(const uint8_t *in, const size_t in_size, uint8_t *out, const siz
         return 0;
     }
 
-    for (size_t r = 0, w = 0; r < in_size; r += 4, w += 3) {
+    size_t w = 0;
+    for (size_t r = 0; r < in_size; r += 4, w += 3) {
         out[w + 0] = (v64[in[r + 0]] << 2) | (v64[in[r + 1]] >> 4);
         out[w + 1] = (v64[in[r + 1]] << 4) | (v64[in[r + 2]] >> 2);
         out[w + 2] = (v64[in[r + 2]] << 6) | (v64[in[r + 3]] >> 0);
+    }
+
+    if (w - 2 < out_size) {
+        out[w - 2] = '\0';
     }
 
     return in_size * 4 / 3;
